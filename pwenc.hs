@@ -26,10 +26,13 @@ cmdEnc pass plain = do
 ------------------------------------------------------------------------
 -- Command-line interface.
 
+getFileContents "-" = SB.getContents
+getFileContents fn  = SB.readFile fn
+
+getPassword "" = Line.runInputT Line.defaultSettings $
+  fromString . fromMaybe "" <$> Line.getPassword (Just '*') "Password: "
+getPassword fn = SB.readFile fn
+
 main :: IO ()
 main = print =<< uncurry cmdEnc =<<
-       (Line.runInputT Line.defaultSettings $ (,) <$> getPassword
-                                                  <*> getInputLine)
-  where
-    getPassword  = (fromString . fromMaybe "") <$> Line.getPassword (Just '*') "Password: "
-    getInputLine = (fromString . fromMaybe "") <$> Line.getInputLine "Secret: "
+  ((,) <$> getPassword "" <*> getFileContents "-")
