@@ -42,10 +42,13 @@ import Control.Exception (evaluate)
 import qualified Crypto.Cipher.AES       as AES
 import qualified Crypto.PBKDF.ByteString as PBKDF
 
+import Data.String (fromString)
 import qualified Data.ByteString      as SB
 import qualified Data.ByteString.Lazy as LB
 import qualified Data.Text            as T
 import qualified Data.Text.Encoding   as T
+
+import qualified System.Console.Haskeline as Line
 
 ------------------------------------------------------------------------
 -- Random.
@@ -131,6 +134,8 @@ kNONCE = SB.replicate 16 0
 
 main :: IO ()
 main = do
-  x@(enc, salt, iter) <- encrypt "Muh Passphrase" "Muh Sekret"
-  print $ (decrypt "Muh Passphrase" salt iter enc == "Muh Sekret")
-  print x
+  (pw, se) <- Line.runInputT Line.defaultSettings $ do
+    Just pw <- Line.getPassword (Just '*') "Password: "
+    Just se <- Line.getInputLine           "Secret  : "
+    return (fromString pw, fromString se)
+  print =<< encrypt pw se
