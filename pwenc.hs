@@ -61,6 +61,10 @@ urandom nbytes = (LB.toStrict . LB.take n') `fmap` LB.readFile "/dev/urandom"
 ------------------------------------------------------------------------
 -- Key derivation.
 
+-- | Hash output size, in octets
+kHASHSIZE :: Int
+kHASHSIZE = 64
+
 -- | Encryption key size, in octets.
 kKEYSIZE :: Int
 kKEYSIZE = 16 -- 128 bits
@@ -80,7 +84,7 @@ Return the encryption key, the salt, and the iteration count.
 deriveKeyIO :: SB.ByteString -> IO (SB.ByteString, SB.ByteString, Int)
 deriveKeyIO pass = do
   iter <- guessIterCount
-  salt <- urandom kKEYSIZE
+  salt <- urandom kHASHSIZE
   return (deriveKey pass salt iter, salt, iter)
 
 {-|
