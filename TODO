@@ -1,0 +1,3 @@
+- On-disk format: ciphertext + parameters to re-construct key
+- Allow user to specify iteration count
+- Move stuff out of encrypt to CLI
