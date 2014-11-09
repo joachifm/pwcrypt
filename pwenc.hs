@@ -68,6 +68,26 @@ guessIterCount = do
 kNONCE :: SB.ByteString
 kNONCE = SB.replicate 16 0
 
+encrypt :: SB.ByteString
+        -> SB.ByteString
+        -> Int
+        -> SB.ByteString
+        -> SB.ByteString
+encrypt pass salt iter plain =
+  let key = deriveKey pass salt iter
+      ctx = AES.initAES key
+  in AES.encryptCTR ctx kNONCE plain
+
+decrypt :: SB.ByteString
+        -> SB.ByteString
+        -> Int
+        -> SB.ByteString
+        -> SB.ByteString
+decrypt pass salt iter ciphr =
+  let key = deriveKey pass salt iter
+      ctx = AES.initAES key
+  in AES.decryptCTR ctx kNONCE ciphr
+
 ------------------------------------------------------------------------
 -- Command wrappers
 
@@ -77,18 +97,9 @@ cmdEnc :: SB.ByteString
 cmdEnc pass plain = do
   salt <- urandom kHASHSIZE
   iter <- guessIterCount
-  let key = deriveKey pass salt iter
-      enc = AES.encryptCTR (AES.initAES key) kNONCE plain
-  return (Base64.encode enc, Base64.encode salt, iter)
-
-cmdDec :: SB.ByteString
-       -> SB.ByteString
-       -> Int
-       -> SB.ByteString
-       -> SB.ByteString
-cmdDec pass salt iter ciphr =
-  let key = deriveKey pass salt iter
-  in AES.decryptCTR (AES.initAES key) kNONCE ciphr
+  return (Base64.encode (encrypt pass salt iter plain),
+          Base64.encode salt,
+          iter)
 
 ------------------------------------------------------------------------
 -- Command-line interface.
