@@ -66,7 +66,7 @@ guessIterCount = do
       t0 <- getCPUTime
       _  <- evaluate (deriveKey "PASS" "SALT" count)
       t1 <- getCPUTime
-      if (fromIntegral (t1 - t0) * 1e-12) >= 0.1 -- of a second
+      if (fromIntegral (t1 - t0) * 1e-12) >= 0.2 -- of a second
          then return count
          else loop (count + 1000)
   loop 1000
