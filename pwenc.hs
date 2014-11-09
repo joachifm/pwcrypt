@@ -94,7 +94,7 @@ guessIterCount = do
       if (fromIntegral (t1 - t0) * 1e-12) >= 0.1 -- of a second
          then return count
          else loop (count + 1000)
-  loop 2000
+  loop 1000
 
 ------------------------------------------------------------------------
 -- Encryption.
