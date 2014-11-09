@@ -6,6 +6,8 @@ module Main (main) where
 import System.CPUTime (getCPUTime)
 import Control.Exception (evaluate)
 
+import Data.Maybe (fromMaybe)
+
 import qualified Crypto.Cipher.AES       as AES
 import qualified Crypto.PBKDF.ByteString as PBKDF
 
@@ -14,6 +16,8 @@ import qualified Data.ByteString      as SB
 import qualified Data.ByteString.Lazy as LB
 import qualified Data.Text            as T
 import qualified Data.Text.Encoding   as T
+
+import qualified Data.ByteString.Base64 as Base64
 
 import qualified System.Console.Haskeline as Line
 
@@ -34,25 +38,13 @@ kHASHSIZE = 64
 
 -- | Encryption key size, in octets.
 kKEYSIZE :: Int
-kKEYSIZE = 16 -- 128 bits
+kKEYSIZE = 16
 
 {-|
 Derive encryption key, given a passphrase, a salt, and an iteration count.
 -}
 deriveKey :: SB.ByteString -> SB.ByteString -> Int -> SB.ByteString
 deriveKey pass salt iter = PBKDF.sha512PBKDF2 pass salt iter kKEYSIZE
-
-{-|
-Derive new encryption key from a passphrase, using a randomly generated
-salt and a an automatically computed iteration count.
-
-Return the encryption key, the salt, and the iteration count.
--}
-deriveKeyIO :: SB.ByteString -> IO (SB.ByteString, SB.ByteString, Int)
-deriveKeyIO pass = do
-  iter <- guessIterCount
-  salt <- urandom kHASHSIZE
-  return (deriveKey pass salt iter, salt, iter)
 
 {-|
 Find the PBKDF2 iteration count necessary to ensure some lower time bound
@@ -73,40 +65,40 @@ guessIterCount = do
 ------------------------------------------------------------------------
 -- Encryption.
 
-{-|
-Passphrase protected encryption.
-
-Takes a passphrase and a plaintext, and returns the ciphertext along with
-the salt and iteration count used to derive the encryption key.
--}
-encrypt :: T.Text -> SB.ByteString -> IO (SB.ByteString, SB.ByteString, Int)
-encrypt pass plain = do
-  (key, salt, iter) <- deriveKeyIO (T.encodeUtf8 pass)
-  let ctx = AES.initAES key
-      enc = AES.encryptCTR ctx kNONCE plain
-  return (enc, salt, iter)
-
-{-|
-Decrypt ciphertext created with 'encrypt'.
--}
-decrypt :: T.Text -> SB.ByteString -> Int -> SB.ByteString -> SB.ByteString
-decrypt pass salt iter enc =
-  let key = deriveKey (T.encodeUtf8 pass) salt iter
-      ctx = AES.initAES key
-  in AES.decryptCTR ctx kNONCE enc
-
--- The IV is constant, but the key is random, ensuring
--- unique @(IV, KEY)@.
 kNONCE :: SB.ByteString
 kNONCE = SB.replicate 16 0
+
+------------------------------------------------------------------------
+-- Command wrappers
+
+cmdEnc :: SB.ByteString
+       -> SB.ByteString
+       -> IO (SB.ByteString, SB.ByteString, Int)
+cmdEnc pass plain = do
+  salt <- urandom kHASHSIZE
+  iter <- guessIterCount
+  let key = deriveKey pass salt iter
+      enc = AES.encryptCTR (AES.initAES key) kNONCE plain
+  return (Base64.encode enc, Base64.encode salt, iter)
+
+cmdDec :: SB.ByteString
+       -> SB.ByteString
+       -> Int
+       -> SB.ByteString
+       -> SB.ByteString
+cmdDec pass salt iter ciphr =
+  let key = deriveKey pass salt iter
+  in AES.decryptCTR (AES.initAES key) kNONCE ciphr
 
 ------------------------------------------------------------------------
 -- Command-line interface.
 
 main :: IO ()
 main = do
-  (pw, se) <- Line.runInputT Line.defaultSettings $ do
-    Just pw <- Line.getPassword (Just '*') "Password: "
-    Just se <- Line.getInputLine           "Secret  : "
-    return (fromString pw, fromString se)
-  print =<< encrypt pw se
+  print =<< uncurry cmdEnc =<< (Line.runInputT Line.defaultSettings $ do
+    pw <- getPassword
+    se <- getInputLine
+    return (fromString pw, fromString se))
+  where
+    getPassword  = fromMaybe "" `fmap` Line.getPassword (Just '*') "Password: "
+    getInputLine = fromMaybe "" `fmap` Line.getInputLine "Secret: "
