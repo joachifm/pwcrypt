@@ -4,11 +4,11 @@ module Main (main) where
 
 import Crypto
 
+import Control.Applicative
 import Data.Maybe (fromMaybe)
 
 import Data.String (fromString)
-import qualified Data.ByteString        as SB
-import qualified Data.ByteString.Base64 as Base64
+import qualified Data.ByteString as SB
 
 import qualified System.Console.Haskeline as Line
 
@@ -17,23 +17,19 @@ import qualified System.Console.Haskeline as Line
 
 cmdEnc :: SB.ByteString
        -> SB.ByteString
-       -> IO (SB.ByteString, SB.ByteString, Int)
+       -> IO (SB.ByteString, Int, SB.ByteString)
 cmdEnc pass plain = do
   salt <- getSalt
   iter <- guessIterCount
-  return (Base64.encode (encrypt pass salt iter plain),
-          Base64.encode salt,
-          iter)
+  return $ encode salt iter (encrypt pass salt iter plain)
 
 ------------------------------------------------------------------------
 -- Command-line interface.
 
 main :: IO ()
-main = do
-  print =<< uncurry cmdEnc =<< (Line.runInputT Line.defaultSettings $ do
-    pw <- getPassword
-    se <- getInputLine
-    return (fromString pw, fromString se))
+main = print =<< uncurry cmdEnc =<<
+       (Line.runInputT Line.defaultSettings $ (,) <$> getPassword
+                                                  <*> getInputLine)
   where
-    getPassword  = fromMaybe "" `fmap` Line.getPassword (Just '*') "Password: "
-    getInputLine = fromMaybe "" `fmap` Line.getInputLine "Secret: "
+    getPassword  = (fromString . fromMaybe "") <$> Line.getPassword (Just '*') "Password: "
+    getInputLine = (fromString . fromMaybe "") <$> Line.getInputLine "Secret: "

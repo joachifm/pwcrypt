@@ -1,7 +1,14 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Crypto ( getSalt, guessIterCount, encrypt, decrypt ) where
+module Crypto (
+    getSalt
+  , guessIterCount
+  , encrypt
+  , decrypt
+  , encode
+  , decode
+  ) where
 
 import System.CPUTime (getCPUTime)
 import Control.Exception (evaluate)
@@ -14,12 +21,8 @@ import qualified Crypto.PBKDF.ByteString as PBKDF
 import Data.String (fromString)
 import qualified Data.ByteString      as SB
 import qualified Data.ByteString.Lazy as LB
-import qualified Data.Text            as T
-import qualified Data.Text.Encoding   as T
 
 import qualified Data.ByteString.Base64 as Base64
-
-import qualified System.Console.Haskeline as Line
 
 ------------------------------------------------------------------------
 -- Random.
@@ -93,3 +96,21 @@ decrypt pass salt iter ciphr =
   let key = deriveKey pass salt iter
       ctx = AES.initAES key
   in AES.decryptCTR ctx kNONCE ciphr
+
+------------------------------------------------------------------------
+-- Encoding
+
+encode :: SB.ByteString -- ^ Salt
+       -> Int           -- ^ Iteration count
+       -> SB.ByteString -- ^ Ciphertext
+       -> (SB.ByteString, Int, SB.ByteString)
+encode salt iter enc = (Base64.encode salt, iter, Base64.encode enc)
+
+decode :: (SB.ByteString, Int, SB.ByteString)
+       -> Either String (SB.ByteString, Int, SB.ByteString)
+decode (salt, iter, enc) =
+  case Base64.decode salt of
+    Right s -> case Base64.decode enc of
+      Right e  -> Right (s, iter, e)
+      Left msg -> Left ("Failed to decode the ciphertext: " ++ msg)
+    Left msg -> Left ("Failed to decode the salt: " ++ msg)
