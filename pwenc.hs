@@ -39,13 +39,13 @@ The encryption algorithm is
 import System.CPUTime (getCPUTime)
 import Control.Exception (evaluate)
 
-import qualified Crypto.Cipher.AES as AES
+import qualified Crypto.Cipher.AES       as AES
 import qualified Crypto.PBKDF.ByteString as PBKDF
 
-import qualified Data.ByteString    as SB
+import qualified Data.ByteString      as SB
 import qualified Data.ByteString.Lazy as LB
-import qualified Data.Text          as T
-import qualified Data.Text.Encoding as T
+import qualified Data.Text            as T
+import qualified Data.Text.Encoding   as T
 
 ------------------------------------------------------------------------
 -- Random.
