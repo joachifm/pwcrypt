@@ -13,20 +13,6 @@ import qualified Data.ByteString as SB
 import System.Environment (getArgs)
 import qualified System.Console.Haskeline as Line
 
-------------------------------------------------------------------------
--- Command wrappers
-
-cmdEnc :: SB.ByteString -- ^ Passphrase
-       -> SB.ByteString -- ^ Plaintext
-       -> IO (SB.ByteString, Int, SB.ByteString)
-cmdEnc pass plain = do
-  salt <- getSalt
-  iter <- guessIterCount
-  return $ encode salt iter (encrypt pass salt iter plain)
-
-------------------------------------------------------------------------
--- Command-line interface.
-
 getPassword :: IO SB.ByteString
 getPassword = Line.runInputT Line.defaultSettings loop
   where
@@ -38,14 +24,22 @@ getPassword = Line.runInputT Line.defaultSettings loop
         then return pw1
         else Line.outputStrLn "Mismatch" >> loop
 
+cmdEnc :: [String] -> IO ()
+cmdEnc [inFile, outFile] = do
+  plain <- SB.readFile inFile
+  pass <- getPassword
+  salt <- getSalt
+  iter <- guessIterCount
+  let enc = fromString . show . encode salt iter $ encrypt pass salt iter plain
+  SB.writeFile outFile enc
+cmdEnc _ = error "Missing arguments\nUsage: pwenc enc <infile> <outfile>"
+
 main :: IO ()
 main = do
   args <- getArgs
   case args of
-    [inFile, outFile] -> do
-      pw <- getPassword
-      cs <- SB.readFile inFile
-      es <- cmdEnc pw cs
-      SB.writeFile outFile (fromString $ show es)
-    _ -> error "Missing arguments\nUsage: pwenc <infile> <outfile>"
-    
+    (cmd:xs) ->
+      case cmd of
+        "enc" -> cmdEnc xs
+        _ -> error "Unknown command"
+    _ -> error "Missing command\nUsage: pwemc {enc|dec} [options]"
