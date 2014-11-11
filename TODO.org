@@ -1,9 +1,13 @@
 * TODO Implement Data.Serialize instance for ciphertexts
+[2014-11-12 Wed]
 
 parameters + encrypted
 
 * TODO CLI: allow user to specify iteration count
+[2014-11-12 Wed]
 
 * TODO Implement verification
+[2014-11-12 Wed]
 
-* TODO CLI: implement decryption command
+* DONE CLI: implement decryption command
+[2014-11-12 Wed]
