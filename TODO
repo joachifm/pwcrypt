@@ -1,3 +1,9 @@
-- On-disk format: ciphertext + parameters to re-construct key
-- Allow user to specify iteration count
-- Move stuff out of encrypt to CLI
+* TODO Implement Data.Serialize instance for ciphertexts
+
+parameters + encrypted
+
+* TODO CLI: allow user to specify iteration count
+
+* TODO Implement verification
+
+* TODO CLI: implement decryption command
