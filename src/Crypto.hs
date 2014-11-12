@@ -10,26 +10,27 @@ module Crypto (
   , decode
   ) where
 
-import System.CPUTime (getCPUTime)
-import Control.Exception (evaluate)
+import Control.Applicative ((<$>), (<*>))
 
 import Data.Maybe (fromMaybe)
+
+import System.CPUTime (getCPUTime)
+import Control.Exception (evaluate)
 
 import qualified Crypto.Cipher.AES       as AES
 import qualified Crypto.PBKDF.ByteString as PBKDF
 
 import Data.String (fromString)
-import qualified Data.ByteString      as SB
-import qualified Data.ByteString.Lazy as LB
-
-import qualified Data.ByteString.Base64 as Base64
+import qualified Data.ByteString       as SB
+import qualified Data.ByteString.Char8 as SB8
+import qualified Data.ByteString.Lazy  as LB
 
 ------------------------------------------------------------------------
 -- Random.
 
 -- | Read @n@ octets of random data from @/dev/urandom@.
 urandom :: Int -> IO SB.ByteString
-urandom nbytes = (LB.toStrict . LB.take n') `fmap` LB.readFile "/dev/urandom"
+urandom nbytes = (LB.toStrict . LB.take n') <$> LB.readFile "/dev/urandom"
   where n' = fromIntegral nbytes
 
 ------------------------------------------------------------------------
@@ -100,17 +101,14 @@ decrypt pass salt iter ciphr =
 ------------------------------------------------------------------------
 -- Encoding
 
-encode :: SB.ByteString -- ^ Salt
-       -> Int           -- ^ Iteration count
-       -> SB.ByteString -- ^ Ciphertext
-       -> (SB.ByteString, Int, SB.ByteString)
-encode salt iter enc = (Base64.encode salt, iter, Base64.encode enc)
+encode :: (SB.ByteString, -- ^ Salt
+           Int,           -- ^ Iteration count
+           SB.ByteString) -- ^ Ciphertext
+       -> SB.ByteString
+encode (salt, iter, enc) = SB.concat [ salt, fromString (show iter), enc ]
 
-decode :: (SB.ByteString, Int, SB.ByteString)
-       -> Either String (SB.ByteString, Int, SB.ByteString)
-decode (salt, iter, enc) =
-  case Base64.decode salt of
-    Right s -> case Base64.decode enc of
-      Right e  -> Right (s, iter, e)
-      Left msg -> Left ("Failed to decode the ciphertext: " ++ msg)
-    Left msg -> Left ("Failed to decode the salt: " ++ msg)
+decode :: SB.ByteString -> (SB.ByteString, Int, SB.ByteString)
+decode x0 =
+  let (salt, xs1) = SB.splitAt kHASHSIZE x0
+      (iter, txt) = SB.span (\c -> c >= 48 && c <= 57) xs1
+  in (salt, read $ SB8.unpack iter, txt)
