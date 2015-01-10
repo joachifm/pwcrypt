@@ -21,8 +21,9 @@ cmdEnc [inFile, outFile] = do
   plain <- SB.readFile inFile
   pass <- Line.runInputT Line.defaultSettings loop
   salt <- getSalt
-  iter <- guessIterCount
-  SB.writeFile outFile $ encode (salt, iter, encrypt pass salt iter plain)
+  iter <- guessIterCount 0.2
+  let (mac, enc) = encrypt pass salt iter plain
+  SB.writeFile outFile $ encode salt iter mac enc
   where
     loop = do
       pw1 <- getPassword "Enter passphrase: "
@@ -34,9 +35,14 @@ cmdEnc _ = error "Missing arguments\nUsage: pwenc enc <infile> <outfile>"
 
 cmdDec :: [String] -> IO ()
 cmdDec [inFile, outFile] = do
-  (salt, iter, txt) <- decode <$> SB.readFile inFile
-  pass <- Line.runInputT Line.defaultSettings (getPassword "Enter passphrase: ")
-  SB.writeFile outFile $ decrypt pass salt iter txt
+  ed <- decode <$> SB.readFile inFile
+  case ed of
+    Left err  -> error ("decoding error: " ++ err)
+    Right (salt, iter, mac, enc) -> do
+      pass <- Line.runInputT Line.defaultSettings (getPassword "Enter passphrase: ")
+      case decrypt pass salt iter mac enc of
+        Left err -> error ("decryption error: " ++ err)
+        Right x  -> SB.writeFile outFile x
 cmdDec _ = error "Missing arguments\nUsage: pwenc dec <infile> <outfile>"
 
 main :: IO ()
