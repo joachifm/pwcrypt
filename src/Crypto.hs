@@ -31,6 +31,8 @@ References:
 module Crypto (
   getSalt,
   guessIterCount,
+  encryptAndEncode, decodeAndDecrypt,
+
   encode, decode,
   encrypt, decrypt
   ) where
@@ -71,6 +73,25 @@ guessIterCount targetSecs = do
          then return z
          else loop (z + 1000)
   loop 0
+
+------------------------------------------------------------------------
+-- Convenience
+
+encryptAndEncode
+  :: SB.ByteString -- ^ Passphrase
+  -> SB.ByteString -- ^ Salt
+  -> Int           -- ^ c
+  -> SB.ByteString -- ^ Message
+  -> SB.ByteString
+encryptAndEncode pass salt c = uncurry (encode salt c) . encrypt pass salt c
+
+decodeAndDecrypt
+  :: SB.ByteString -- ^ Passphrase
+  -> SB.ByteString -- ^ Encoded ciphertext
+  -> Either String SB.ByteString
+decodeAndDecrypt pass etxt = do
+  (salt, c, mac, txt) <- decode etxt
+  decrypt pass salt c mac txt
 
 ------------------------------------------------------------------------
 -- Serialization
