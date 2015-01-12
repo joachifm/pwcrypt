@@ -5,9 +5,8 @@ module CryptoSpec (spec) where
 import Crypto
 
 import Control.Monad.IO.Class (liftIO)
-import Control.Monad.Identity
 import Test.Hspec
-import Test.Hspec.Core.Spec
+import Test.Hspec.Core.Spec (SpecM(..))
 
 spec :: Spec
 spec = do
@@ -26,4 +25,10 @@ spec = do
       let enc = encode salt c mac txt
       decode enc `shouldBe` Right (salt, c, mac, txt)
 
+  describe "decodeAndDecrypt" $ do
+    it "decodes, then decrypts" $ do
+      let enc = encryptAndEncode pass salt c mesg
+      decodeAndDecrypt pass enc `shouldBe` Right mesg
+
+io :: IO r -> SpecM a r
 io = SpecM . liftIO
