@@ -8,12 +8,16 @@ DerivedKey       = PBKDF2(SHA-512, Pass, Salt, c, 16 + 32)
 (EncKey, MacKey) = splitAt 16 DerivedKey
 IV               = 0
 CipherText       = AES-128-CTR(Message, EncKey)
-MAC              = HMAC-256(MacKey, SHA-256(Salt) +
-                                    SHA-256(CipherText)))
+MAC              = HMAC-256(MacKey, SHA-256(Salt) + SHA-256(CipherText)))
 @
 
-The salt length is set to the output size of the PBKDF2 PRF, per
-the NIST recommendation.
+The HMAC inputs are hashed before concatenation to avoid leaving "gaps" in
+the input.
+Only the derivation parameters and the ciphertext are hashed, to avoid
+leaking any information about the key material or the plain text.
+
+The salt length is set to the output size of the PBKDF2 PRF, per the NIST
+recommendation.
 
 The HMAC key length is set to the output size of the hash function, the
 sensible maximum according to RFC 2104.
