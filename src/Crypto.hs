@@ -75,17 +75,17 @@ guessIterCount targetSecs = go 1000
 encode
   :: SB.ByteString -- ^ Salt
   -> Int           -- ^ c
+  -> SB.ByteString -- ^ MAC
   -> SB.ByteString -- ^ Ciphertext
-  -> SB.ByteString -- ^ HMAC
   -> SB.ByteString
-encode salt c mac enc = Base64.encode . Serialize.runPut $ do
+encode salt c mac txt = Base64.encode . Serialize.runPut $ do
   Serialize.putWord16le (fromIntegral c)
-  Serialize.putByteString (SB.concat [ salt, mac, enc ])
+  Serialize.putByteString (SB.concat [ salt, mac, txt ])
 
 decode
   :: SB.ByteString
   -> Either String (SB.ByteString, Int, SB.ByteString, SB.ByteString)
-  -- ^ Either error or @(Salt, c, HMAC, Ciphertext)@.
+  -- ^ Either error or @(Salt, c, MAC, Ciphertext)@.
 decode = Serialize.runGet (do
   c <- fromIntegral <$> Serialize.getWord16le
   s <- Serialize.getByteString 64
@@ -103,26 +103,27 @@ encrypt :: SB.ByteString -- ^ Passphrase
         -> SB.ByteString -- ^ Salt
         -> Int           -- ^ Iteration count
         -> SB.ByteString -- ^ Message
-        -> (SB.ByteString, SB.ByteString) -- ^ @(HMAC, Ciphertext)@
-encrypt pass salt iter plain =
-  let (ekey, hkey) = kdf pass salt iter
+        -> (SB.ByteString, SB.ByteString) -- ^ @(MAC, Ciphertext)@
+encrypt pass salt c plain =
+  let (ekey, hkey) = kdf pass salt c
       ctx = AES.initAES ekey
-      enc = AES.encryptCTR ctx kNONCE plain
-      mac = hmac256 hkey (hash256 salt `SB.append` hash256 enc)
-  in (mac, enc)
+      txt = AES.encryptCTR ctx kNONCE plain
+      mac = hmac256 hkey (hash256 salt `SB.append` hash256 txt)
+  in (mac, txt)
 
 decrypt :: SB.ByteString -- ^ Passphrase
         -> SB.ByteString -- ^ Salt
         -> Int           -- ^ Iteration count
-        -> SB.ByteString -- ^ HMAC
+        -> SB.ByteString -- ^ MAC
         -> SB.ByteString -- ^ Ciphertext
         -> Either String SB.ByteString
-decrypt pass salt iter mac' enc =
-  let (ekey, hkey) = kdf pass salt iter
+decrypt pass salt c mac' txt =
+  let (ekey, hkey) = kdf pass salt c
       ctx = AES.initAES ekey
-      mac = hmac256 hkey (hash256 salt `SB.append` hash256 enc)
-      dec = AES.decryptCTR ctx kNONCE enc in
-  if mac' == mac then Right dec else Left "HMAC mismatch"
+      mac = hmac256 hkey (hash256 salt `SB.append` hash256 txt)
+  in if mac' == mac
+     then Right (AES.decryptCTR ctx kNONCE txt)
+     else Left "MAC mismatch"
 
 ------------------------------------------------------------------------
 -- Internals
