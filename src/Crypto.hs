@@ -59,15 +59,18 @@ import qualified Data.ByteString.Lazy as LB
 -- Tuning parameters
 
 guessIterCount :: Double -> IO Int
-guessIterCount targetSecs = go 1000
-  where
-    go !count = do
+guessIterCount targetSecs = do
+  salt <- getSalt
+  let
+    pass = fromString "Pass"
+    loop !z = do
       t0 <- getCPUTime
-      _  <- evaluate (kdf (fromString "PASS") (fromString "SALT") count)
+      _  <- evaluate (kdf pass salt z)
       t1 <- getCPUTime
       if (fromIntegral (t1 - t0) * 1e-12) >= targetSecs
-         then return count
-         else go (count + 1000)
+         then return z
+         else loop (z + 1000)
+  loop 0
 
 ------------------------------------------------------------------------
 -- Serialization
@@ -96,9 +99,6 @@ decode = Serialize.runGet (do
 ------------------------------------------------------------------------
 -- Encryption and decryption
 
-getSalt :: IO SB.ByteString
-getSalt = urandom 64
-
 encrypt :: SB.ByteString -- ^ Passphrase
         -> SB.ByteString -- ^ Salt
         -> Int           -- ^ Iteration count
@@ -125,22 +125,26 @@ decrypt pass salt c mac' txt =
      then Right (AES.decryptCTR ctx kNONCE txt)
      else Left "MAC mismatch"
 
+kNONCE :: SB.ByteString
+kNONCE = SB.pack [0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0]
+
 ------------------------------------------------------------------------
--- Internals
+-- Cryptographic salt
+
+getSalt :: IO SB.ByteString
+getSalt = (LB.toStrict . LB.take 64) <$> LB.readFile "/dev/urandom"
+
+------------------------------------------------------------------------
+-- Key derivation
 
 kdf :: SB.ByteString -> SB.ByteString -> Int -> (SB.ByteString, SB.ByteString)
 kdf pass salt c = SB.splitAt 16 (PBKDF.sha512PBKDF2 pass salt c 48)
 
-kNONCE :: SB.ByteString
-kNONCE = SB.pack [0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0]
+------------------------------------------------------------------------
+-- Internals
 
 hash256 :: SB.ByteString -> SB.ByteString
 hash256 = SHA256.hash
 
 hmac256 :: SB.ByteString -> SB.ByteString -> SB.ByteString
 hmac256 s m = toBytes (hmac s m :: HMAC SHA256)
-
--- | Read @n@ octets of random data from @/dev/urandom@.
-urandom :: Int -> IO SB.ByteString
-urandom nbytes = (LB.toStrict . LB.take n') <$> LB.readFile "/dev/urandom"
-  where n' = fromIntegral nbytes
