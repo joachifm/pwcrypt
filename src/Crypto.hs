@@ -158,7 +158,11 @@ getSalt = (LB.toStrict . LB.take 64) <$> LB.readFile "/dev/urandom"
 ------------------------------------------------------------------------
 -- Key derivation
 
-kdf :: SB.ByteString -> SB.ByteString -> Int -> (SB.ByteString, SB.ByteString)
+kdf
+  :: SB.ByteString
+  -> SB.ByteString
+  -> Int
+  -> (SB.ByteString, SB.ByteString)
 kdf pass salt c = SB.splitAt 16 (PBKDF.sha512PBKDF2 pass salt c 48)
 
 ------------------------------------------------------------------------
