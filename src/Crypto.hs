@@ -40,13 +40,14 @@ module Crypto (
   encryptAndEncode,
   decodeAndDecrypt,
   recrypt,
+
 #ifdef TEST
   encode, decode, encrypt, decrypt,
 #endif
   ) where
 
 import Control.Applicative ((<$>), (<*>))
-import Control.Monad ((<=<))
+import Control.Monad ((>=>))
 
 import Crypto.Hash (SHA256)
 import Crypto.MAC (HMAC, hmac)
@@ -134,12 +135,12 @@ decode
   :: SB.ByteString
   -> Either String (SB.ByteString, Int, SB.ByteString, SB.ByteString)
   -- ^ Either error or @(Salt, c, MAC, Ciphertext)@.
-decode = Serialize.runGet (do
+decode = Base64.decode >=> Serialize.runGet (do
   c <- fromIntegral <$> Serialize.getWord16le
   s <- Serialize.getByteString 64
   m <- Serialize.getByteString 32
   e <- Serialize.getByteString =<< Serialize.remaining
-  return (s, c, m, e)) <=< Base64.decode
+  return (s, c, m, e))
 
 ------------------------------------------------------------------------
 -- Encryption and decryption
