@@ -30,5 +30,16 @@ spec = do
       let enc = encryptAndEncode pass salt c mesg
       decodeAndDecrypt pass enc `shouldBe` Right mesg
 
+  describe "recrypt" $ do
+    newSalt <- io getSalt
+    it "updates the passphrase and encryption parameters" $ do
+      let origEnc = encryptAndEncode pass salt c mesg
+          newEnc  = encryptAndEncode "NewPass" newSalt 1024 mesg
+      recrypt pass "NewPass" newSalt 1024 origEnc `shouldBe` Right newEnc
+
+    it "returns the original if the parameters do not change" $ do
+      let origEnc = encryptAndEncode pass salt c mesg
+      recrypt pass pass salt c origEnc `shouldBe` Right origEnc
+
 io :: IO r -> SpecM a r
 io = SpecM . liftIO

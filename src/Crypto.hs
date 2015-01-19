@@ -1,4 +1,5 @@
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE CPP #-}
 
 {-|
 Briefly, the encryption scheme is
@@ -7,6 +8,7 @@ Briefly, the encryption scheme is
 Pass             = User-supplied passphrase
 Salt             = 64 bytes of cryptographic salt
 c                = PBKDF2 iteration count
+
 DerivedKey       = PBKDF2(SHA-512, Pass, Salt, c, 16 + 32)
 (EncKey, MacKey) = splitAt 16 DerivedKey
 IV               = 0
@@ -34,10 +36,13 @@ References:
 module Crypto (
   getSalt,
   guessIterCount,
-  encryptAndEncode, decodeAndDecrypt,
 
-  encode, decode,
-  encrypt, decrypt
+  encryptAndEncode,
+  decodeAndDecrypt,
+  recrypt,
+#ifdef TEST
+  encode, decode, encrypt, decrypt,
+#endif
   ) where
 
 import Control.Applicative ((<$>), (<*>))
@@ -78,20 +83,36 @@ guessIterCount targetSecs = do
   loop 0
 
 ------------------------------------------------------------------------
--- Convenience
+-- High-level interface
 
+-- | Update passphrase and encryption parameters.
+recrypt
+  :: SB.ByteString -- ^ Original passphrase
+  -> SB.ByteString -- ^ New passphrase
+  -> SB.ByteString -- ^ New salt
+  -> Int           -- ^ New iteration count
+  -> SB.ByteString -- ^ Original encoded ciphertext
+  -> Either String SB.ByteString -- ^ Either error or new encoded ciphertext
+recrypt origPass newPass newSalt newIter etxt = do
+  (salt, c, mac, txt) <- decode etxt
+  msg <- decrypt origPass salt c mac txt
+  return $! encryptAndEncode newPass newSalt newIter msg
+
+-- | Encrypt the input message and return a base64 encoded string containing
+-- the encryption parameters along with the ciphertext.
 encryptAndEncode
   :: SB.ByteString -- ^ Passphrase
   -> SB.ByteString -- ^ Salt
   -> Int           -- ^ c
   -> SB.ByteString -- ^ Message
-  -> SB.ByteString
+  -> SB.ByteString -- ^ Encoded ciphertext
 encryptAndEncode pass salt c = uncurry (encode salt c) . encrypt pass salt c
 
+-- | The inverse of 'encryptAndEncode'.
 decodeAndDecrypt
   :: SB.ByteString -- ^ Passphrase
   -> SB.ByteString -- ^ Encoded ciphertext
-  -> Either String SB.ByteString
+  -> Either String SB.ByteString -- ^ Either an error or original plaintext
 decodeAndDecrypt pass etxt = do
   (salt, c, mac, txt) <- decode etxt
   decrypt pass salt c mac txt
