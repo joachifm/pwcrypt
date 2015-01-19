@@ -132,7 +132,7 @@ encrypt pass salt c plain =
   let (ekey, hkey) = kdf pass salt c
       ctx = AES.initAES ekey
       txt = AES.encryptCTR ctx kNONCE plain
-      mac = hmac256 hkey (hash256 salt `SB.append` hash256 txt)
+      mac = hmac256 hkey (sha256 salt `SB.append` sha256 txt)
   in (mac, txt)
 
 decrypt :: SB.ByteString -- ^ Passphrase
@@ -144,7 +144,7 @@ decrypt :: SB.ByteString -- ^ Passphrase
 decrypt pass salt c mac' txt =
   let (ekey, hkey) = kdf pass salt c
       ctx = AES.initAES ekey
-      mac = hmac256 hkey (hash256 salt `SB.append` hash256 txt)
+      mac = hmac256 hkey (sha256 salt `SB.append` sha256 txt)
   in if mac' == mac
      then Right (AES.decryptCTR ctx kNONCE txt)
      else Left "MAC mismatch"
@@ -166,13 +166,13 @@ kdf
   -> SB.ByteString
   -> Int
   -> (SB.ByteString, SB.ByteString)
-kdf pass salt c = SB.splitAt 16 (PBKDF.sha512PBKDF2 pass salt c 48)
+kdf pass salt c = SB.splitAt 16 (PBKDF.sha512PBKDF2 pass salt c (16 + 32))
 
 ------------------------------------------------------------------------
 -- Internals
 
-hash256 :: SB.ByteString -> SB.ByteString
-hash256 = SHA256.hash
+sha256 :: SB.ByteString -> SB.ByteString
+sha256 = SHA256.hash
 
 hmac256 :: SB.ByteString -> SB.ByteString -> SB.ByteString
 hmac256 s m = toBytes (hmac s m :: HMAC SHA256)
