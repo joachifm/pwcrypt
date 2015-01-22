@@ -1,4 +1,8 @@
-* TODO Implement Data.Serialize instance for ciphertexts
+* TODO CLI: port to optparse-applicative
+* TODO CLI: refuse to overwrite existing files [0/2]
+- [ ] enc
+- [ ] dec
+* DONE Implement Data.Serialize instance for ciphertexts
 [2014-11-12 Wed]
 
 parameters + encrypted
