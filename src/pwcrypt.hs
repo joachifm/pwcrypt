@@ -30,13 +30,13 @@ cmdEnc [inFile, outFile] = do
       if pw1 == pw2
          then return pw1
          else Line.outputStrLn "Mismatch" >> loop
-cmdEnc _ = error "Missing arguments\nUsage: pwenc enc <infile> <outfile>"
+cmdEnc _ = error "Missing arguments\nUsage: pwcrypt enc <infile> <outfile>"
 
 cmdDec :: [String] -> IO ()
 cmdDec [inFile, outFile] = do
   pass <- Line.runInputT Line.defaultSettings (getPassword "Enter passphrase: ")
   either fail (SB.writeFile outFile) =<< decodeAndDecrypt pass <$> SB.readFile inFile
-cmdDec _ = error "Missing arguments\nUsage: pwenc dec <infile> <outfile>"
+cmdDec _ = error "Missing arguments\nUsage: pwcrypt dec <infile> <outfile>"
 
 main :: IO ()
 main = do
@@ -47,4 +47,4 @@ main = do
         "enc" -> cmdEnc xs
         "dec" -> cmdDec xs
         _ -> error "Unknown command"
-    _ -> error "Missing command\nUsage: pwemc {enc|dec} [options]"
+    _ -> error "Missing command\nUsage: pwcrypt {enc|dec} [options]"
