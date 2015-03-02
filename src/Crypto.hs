@@ -2,7 +2,8 @@
 {-# LANGUAGE CPP #-}
 
 {-|
-Briefly, the encryption scheme is
+Briefly, the encryption scheme is a variant of the PBES2 encryption scheme,
+described in RFC 2898 section 6.2.
 
 @
 Pass             = User-supplied passphrase
@@ -13,7 +14,7 @@ DerivedKey       = PBKDF2(SHA-512, Pass, Salt, c, 16 + 32)
 (EncKey, MacKey) = splitAt 16 DerivedKey
 IV               = 0
 CipherText       = AES-128-CTR(IV, Message, EncKey)
-MAC              = HMAC-256(MacKey, SHA-256(Salt) + SHA-256(CipherText)))
+MAC              = HMAC-SHA-256(MacKey, SHA-256(Salt) + SHA-256(CipherText)))
 @
 
 The HMAC inputs are hashed before concatenation to avoid leaving "gaps" in
@@ -31,6 +32,9 @@ References:
 
 * HMAC: Keyed-Hashing for Message Authentication,
   <https://www.ietf.org/rfc/rfc2104.txt>
+
+* PKCS #5: Password-Based Cryptography Specification Version 2.0,
+  <https://www.ietf.org/rfc/rfc2898.txt>
 -}
 
 module Crypto (
