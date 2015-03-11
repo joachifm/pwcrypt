@@ -30,6 +30,7 @@ executable pwcrypt
                 cipher-aes >=0.2 && <0.3,
                 cryptohash >=0.11 && <0.12,
                 haskeline >= 0.7.1 && <1,
+                optparse-applicative,
                 pbkdf >=1.1 && <1.2
 
   hs-source-dirs:      src
