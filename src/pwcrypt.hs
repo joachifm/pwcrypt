@@ -10,8 +10,39 @@ import Data.Maybe (fromMaybe)
 import Data.String (fromString)
 import qualified Data.ByteString as SB
 
+import Data.Monoid
+import Options.Applicative
+
 import System.Environment (getArgs)
 import qualified System.Console.Haskeline as Line
+
+data EncOptions = EncOptions
+  { encInpFile :: FilePath
+  , encOutFile :: FilePath
+  }
+
+data DecOptions = DecOptions
+  { decInpFile :: FilePath
+  , decOutFile :: FilePath
+  }
+
+data Command
+  = Encrypt EncOptions
+  | Decrypt DecOptions
+
+data Options = Options
+  { optCommand :: Command
+  }
+
+options :: Parser Options
+options =
+  subparser (
+    command "enc" (info encOpts ( progDesc "encrypt" )) <>
+    command "dec" (info decOpts ( progDesc "decrypt" ))
+  )
+  where
+    encOpts = undefined
+    decOpts = undefined
 
 getPassword :: String -> Line.InputT IO SB.ByteString
 getPassword p = fromString . fromMaybe "" <$> Line.getPassword (Just '*') p
