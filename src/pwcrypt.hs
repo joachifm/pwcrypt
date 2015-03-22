@@ -19,20 +19,21 @@ import qualified System.Console.Haskeline as Line
 data EncOptions = EncOptions
   { encInpFile :: FilePath
   , encOutFile :: FilePath
-  }
+  } deriving (Show)
 
 data DecOptions = DecOptions
   { decInpFile :: FilePath
   , decOutFile :: FilePath
-  }
+  } deriving (Show)
 
 data Command
   = Encrypt EncOptions
   | Decrypt DecOptions
+    deriving (Show)
 
 data Options = Options
   { optCommand :: Command
-  }
+  } deriving (Show)
 
 options :: Parser Options
 options =
