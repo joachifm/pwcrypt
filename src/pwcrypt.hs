@@ -26,9 +26,15 @@ data DecOptions = DecOptions
   , decOutFile :: FilePath
   } deriving (Show)
 
+data RecOptions = RecOptions
+  { recInpFile :: FilePath
+  , recOutFile :: FilePath
+  } deriving (Show)
+
 data Command
   = Encrypt EncOptions
   | Decrypt DecOptions
+  | Recrypt EncOptions
     deriving (Show)
 
 data Options = Options
@@ -39,11 +45,13 @@ options :: Parser Options
 options =
   subparser (
     command "enc" (info encOpts ( progDesc "encrypt" )) <>
-    command "dec" (info decOpts ( progDesc "decrypt" ))
+    command "dec" (info decOpts ( progDesc "decrypt" )) <>
+    command "rec" (info recOpts ( progDesc "recrypt" ))
   )
   where
     encOpts = undefined
     decOpts = undefined
+    recOpts = undefined
 
 getPassword :: String -> Line.InputT IO SB.ByteString
 getPassword p = fromString . fromMaybe "" <$> Line.getPassword (Just '*') p
