@@ -1,7 +1,8 @@
 name:                pwcrypt
 version:             0.1.0.0
 synopsis:            Passphrase protected ciphertexts
--- description:
+description:         Command-line file encryption utility ala scrypt
+category:            Crypto
 license:             MIT
 license-file:        LICENSE
 author:              joachifm
