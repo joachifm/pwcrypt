@@ -19,6 +19,7 @@ import qualified System.Console.Haskeline as Line
 data EncOptions = EncOptions
   { encInpFile :: FilePath
   , encOutFile :: FilePath
+  , encParamTargetTime :: Double
   } deriving (Show)
 
 data DecOptions = DecOptions
