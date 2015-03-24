@@ -43,16 +43,47 @@ data Options = Options
   } deriving (Show)
 
 options :: Parser Options
-options =
+options = Options <$>
   subparser (
-    command "enc" (info encOpts ( progDesc "encrypt" )) <>
-    command "dec" (info decOpts ( progDesc "decrypt" )) <>
-    command "rec" (info recOpts ( progDesc "recrypt" ))
+    command "enc" (info (Encrypt <$> encOpts) ( progDesc "encrypt" )) <>
+    command "dec" (info (Decrypt <$> decOpts) ( progDesc "decrypt" )) <>
+    command "rec" (info (Recrypt <$> recOpts) ( progDesc "recrypt" ))
   )
   where
-    encOpts = undefined
-    decOpts = undefined
-    recOpts = undefined
+    encOpts = EncOptions <$>
+      strOption (
+        long "infile" <>
+        metavar "FILE" <>
+        help "Input file"
+        ) <*>
+      strOption (
+        long "outfile" <>
+        metavar "FILE" <>
+        help "Output file"
+        ) <*>
+      option double (
+        long "target-time" <>
+        metavar "FLOAT" <>
+        help "Target time parameter" <>
+        value (0.2::Double)
+        )
+
+    decOpts = DecOptions <$>
+      strOption (
+        long "infile" <>
+        metavar "FILE" <>
+        help "Input file"
+        ) <*>
+      strOption (
+        long "outfile" <>
+        metavar "FILE" <>
+        help "Output file"
+        )
+
+    recOpts = RecOptions <$> pure "" <*> pure ""
+
+    double :: ReadM Double
+    double = auto
 
 getPassword :: String -> Line.InputT IO SB.ByteString
 getPassword p = fromString . fromMaybe "" <$> Line.getPassword (Just '*') p
@@ -80,12 +111,12 @@ cmdDec [inFile, outFile] = do
 cmdDec _ = error "Missing arguments\nUsage: pwcrypt dec <infile> <outfile>"
 
 main :: IO ()
-main = do
-  args <- getArgs
-  case args of
-    (cmd:xs) ->
-      case cmd of
-        "enc" -> cmdEnc xs
-        "dec" -> cmdDec xs
-        _ -> error "Unknown command"
-    _ -> error "Missing command\nUsage: pwcrypt {enc|dec} [options]"
+main = execParser opts >>= \x -> case optCommand x of
+  Encrypt os -> cmdEnc [encInpFile os, encOutFile os]
+  Decrypt os -> cmdDec [decInpFile os, decOutFile os]
+  Recrypt _  -> return ()
+  where
+    opts = info (helper <*> options)
+      ( fullDesc <>
+        progDesc "File encryption utility" <>
+        header "pwcrypt" )
