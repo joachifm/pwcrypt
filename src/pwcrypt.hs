@@ -103,16 +103,15 @@ cmdEnc os = do
          then return pw1
          else Line.outputStrLn "Mismatch" >> loop
 
-cmdDec :: [String] -> IO ()
-cmdDec [inFile, outFile] = do
+cmdDec :: DecOptions -> IO ()
+cmdDec os = do
   pass <- Line.runInputT Line.defaultSettings (getPassword "Enter passphrase: ")
-  either fail (SB.writeFile outFile) =<< decodeAndDecrypt pass <$> SB.readFile inFile
-cmdDec _ = error "Missing arguments\nUsage: pwcrypt dec <infile> <outfile>"
+  either fail (SB.writeFile (decOutFile os)) =<< decodeAndDecrypt pass <$> SB.readFile (decInpFile os)
 
 main :: IO ()
 main = execParser opts >>= \x -> case optCommand x of
   Encrypt os -> cmdEnc os
-  Decrypt os -> cmdDec [decInpFile os, decOutFile os]
+  Decrypt os -> cmdDec os
   Recrypt _  -> return ()
   where
     opts = info (helper <*> options)
