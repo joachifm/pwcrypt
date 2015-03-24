@@ -14,6 +14,8 @@ cabal-version:       >=1.10
 
 executable pwcrypt
   main-is:             pwcrypt.hs
+  other-modules:
+    Crypto
   -- other-modules:
   other-extensions:    OverloadedStrings, BangPatterns
   extra-libraries:     ncursesw
