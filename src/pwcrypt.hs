@@ -35,7 +35,7 @@ data RecOptions = RecOptions
 data Command
   = Encrypt EncOptions
   | Decrypt DecOptions
-  | Recrypt EncOptions
+  | Recrypt RecOptions
     deriving (Show)
 
 data Options = Options
