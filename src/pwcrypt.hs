@@ -88,13 +88,13 @@ options = Options <$>
 getPassword :: String -> Line.InputT IO SB.ByteString
 getPassword p = fromString . fromMaybe "" <$> Line.getPassword (Just '*') p
 
-cmdEnc :: [String] -> IO ()
-cmdEnc [inFile, outFile] = do
-  plain <- SB.readFile inFile
+cmdEnc :: EncOptions -> IO ()
+cmdEnc os = do
+  plain <- SB.readFile (encInpFile os)
   pass <- Line.runInputT Line.defaultSettings loop
   salt <- getSalt
-  iter <- guessIterCount 0.2
-  SB.writeFile outFile $ encryptAndEncode pass salt iter plain
+  iter <- guessIterCount (encParamTargetTime os)
+  SB.writeFile (encOutFile os) $ encryptAndEncode pass salt iter plain
   where
     loop = do
       pw1 <- getPassword "Enter passphrase: "
@@ -102,7 +102,6 @@ cmdEnc [inFile, outFile] = do
       if pw1 == pw2
          then return pw1
          else Line.outputStrLn "Mismatch" >> loop
-cmdEnc _ = error "Missing arguments\nUsage: pwcrypt enc <infile> <outfile>"
 
 cmdDec :: [String] -> IO ()
 cmdDec [inFile, outFile] = do
@@ -112,7 +111,7 @@ cmdDec _ = error "Missing arguments\nUsage: pwcrypt dec <infile> <outfile>"
 
 main :: IO ()
 main = execParser opts >>= \x -> case optCommand x of
-  Encrypt os -> cmdEnc [encInpFile os, encOutFile os]
+  Encrypt os -> cmdEnc os
   Decrypt os -> cmdDec [decInpFile os, decOutFile os]
   Recrypt _  -> return ()
   where
