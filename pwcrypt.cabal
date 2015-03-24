@@ -8,16 +8,18 @@ license-file:        LICENSE
 author:              joachifm
 maintainer:          joachifm@fastmail.fm
 -- copyright:
--- category:
 build-type:          Simple
 extra-source-files:  README.markdown
 cabal-version:       >=1.10
+
+source-repository head
+  type: git
+  location: https://github.com/joachifm/pwcrypt.git
 
 executable pwcrypt
   main-is:             pwcrypt.hs
   other-modules:
     Crypto
-  -- other-modules:
   other-extensions:    OverloadedStrings, BangPatterns
   extra-libraries:     ncursesw
   build-depends:
