@@ -45,9 +45,9 @@ data Options = Options
 options :: Parser Options
 options = Options <$>
   subparser (
-    command "enc" (info (Encrypt <$> encOpts) ( progDesc "encrypt" )) <>
-    command "dec" (info (Decrypt <$> decOpts) ( progDesc "decrypt" )) <>
-    command "rec" (info (Recrypt <$> recOpts) ( progDesc "recrypt" ))
+    command "enc" (info (helper <*> (Encrypt <$> encOpts)) ( progDesc "encrypt" )) <>
+    command "dec" (info (helper <*> (Decrypt <$> decOpts)) ( progDesc "decrypt" )) <>
+    command "rec" (info (helper <*> (Recrypt <$> recOpts)) ( progDesc "recrypt" ))
   )
   where
     encOpts = EncOptions <$>
