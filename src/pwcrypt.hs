@@ -85,20 +85,21 @@ options = Options <$>
 getPassword :: String -> Line.InputT IO SB.ByteString
 getPassword p = fromString . fromMaybe "" <$> Line.getPassword (Just '*') p
 
-cmdEnc :: EncOptions -> IO ()
-cmdEnc os = do
-  plain <- SB.readFile (encInpFile os)
-  pass <- Line.runInputT Line.defaultSettings loop
-  salt <- getSalt
-  iter <- guessIterCount (encParamTargetTime os)
-  SB.writeFile (encOutFile os) $ encryptAndEncode pass salt iter plain
-  where
-    loop = do
+getNewPassword :: Line.InputT IO SB.ByteString
+getNewPassword = do
       pw1 <- getPassword "Enter passphrase: "
       pw2 <- getPassword "Verify          : "
       if pw1 == pw2
          then return pw1
-         else Line.outputStrLn "Mismatch" >> loop
+         else Line.outputStrLn "Mismatch" >> getNewPassword
+
+cmdEnc :: EncOptions -> IO ()
+cmdEnc os = do
+  plain <- SB.readFile (encInpFile os)
+  pass <- Line.runInputT Line.defaultSettings getNewPassword
+  salt <- getSalt
+  iter <- guessIterCount (encParamTargetTime os)
+  SB.writeFile (encOutFile os) $ encryptAndEncode pass salt iter plain
 
 cmdDec :: DecOptions -> IO ()
 cmdDec os = do
