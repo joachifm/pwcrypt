@@ -71,6 +71,14 @@ import qualified Data.ByteString      as SB
 import qualified Data.ByteString.Lazy as LB
 
 ------------------------------------------------------------------------
+-- Global constants
+
+kEncKeyLen, kMacKeyLen, kPrfOutLen :: Int
+kEncKeyLen = 16 -- encryption key length, in octets
+kMacKeyLen = 32 -- MAC key length, in octets
+kPrfOutLen = 64 -- PBKDF2 hash output size, in octets
+
+------------------------------------------------------------------------
 -- Tuning parameters
 
 guessIterCount :: Double -> IO Int
@@ -141,8 +149,8 @@ decode
   -- ^ Either error or @(Salt, c, MAC, Ciphertext)@.
 decode = Base64.decode >=> Serialize.runGet (do
   c <- fromIntegral <$> Serialize.getWord16le
-  s <- Serialize.getByteString 64
-  m <- Serialize.getByteString 32
+  s <- Serialize.getByteString kPrfOutLen
+  m <- Serialize.getByteString kMacKeyLen
   e <- Serialize.getByteString =<< Serialize.remaining
   return (s, c, m, e))
 
@@ -182,7 +190,7 @@ kNONCE = SB.pack [0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0]
 -- Cryptographic salt
 
 getSalt :: IO SB.ByteString
-getSalt = (LB.toStrict . LB.take 64) <$> LB.readFile "/dev/urandom"
+getSalt = (LB.toStrict . LB.take (fromIntegral kPrfOutLen)) <$> LB.readFile "/dev/urandom"
 
 ------------------------------------------------------------------------
 -- Key derivation
@@ -192,7 +200,7 @@ kdf
   -> SB.ByteString
   -> Int
   -> (SB.ByteString, SB.ByteString)
-kdf pass salt c = SB.splitAt 16 (PBKDF.sha512PBKDF2 pass salt c (16 + 32))
+kdf pass salt c = SB.splitAt kEncKeyLen (PBKDF.sha512PBKDF2 pass salt c (kEncKeyLen + kMacKeyLen))
 
 ------------------------------------------------------------------------
 -- Internals
