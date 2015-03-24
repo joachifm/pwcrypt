@@ -130,7 +130,7 @@ encode
   -> Int           -- ^ c
   -> SB.ByteString -- ^ MAC
   -> SB.ByteString -- ^ Ciphertext
-  -> SB.ByteString
+  -> SB.ByteString -- ^ @Base64 (c + Salt + MAC + Ciphertext)@
 encode salt c mac txt = Base64.encode . Serialize.runPut $ do
   Serialize.putWord16le (fromIntegral c)
   Serialize.putByteString (SB.concat [ salt, mac, txt ])
@@ -166,7 +166,7 @@ decrypt :: SB.ByteString -- ^ Passphrase
         -> Int           -- ^ Iteration count
         -> SB.ByteString -- ^ MAC
         -> SB.ByteString -- ^ Ciphertext
-        -> Either String SB.ByteString
+        -> Either String SB.ByteString -- ^ Error message or plaintext
 decrypt pass salt c mac' txt =
   let (ekey, hkey) = kdf pass salt c
       ctx = AES.initAES ekey
