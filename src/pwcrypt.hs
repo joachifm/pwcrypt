@@ -30,6 +30,7 @@ data DecOptions = DecOptions
 data RecOptions = RecOptions
   { recInpFile :: FilePath
   , recOutFile :: FilePath
+  , recParamTargetTime :: Double
   } deriving (Show)
 
 data Command
@@ -80,7 +81,23 @@ options = Options <$>
         help "Output file"
         )
 
-    recOpts = RecOptions <$> pure "" <*> pure ""
+    recOpts = RecOptions <$>
+      strOption (
+        long "infile" <>
+        metavar "FILE" <>
+        help "Input file"
+        ) <*>
+      strOption (
+        long "outfile" <>
+        metavar "FILE" <>
+        help "Output file"
+        ) <*>
+      option auto (
+        long "target-time" <>
+        metavar "FLOAT" <>
+        help "Target time parameter" <>
+        value (0.2::Double)
+        )
 
 getPassword :: String -> Line.InputT IO SB.ByteString
 getPassword p = fromString . fromMaybe "" <$> Line.getPassword (Just '*') p
@@ -106,11 +123,23 @@ cmdDec os = do
   pass <- Line.runInputT Line.defaultSettings (getPassword "Enter passphrase: ")
   either fail (SB.writeFile (decOutFile os)) =<< decodeAndDecrypt pass <$> SB.readFile (decInpFile os)
 
+cmdRec :: RecOptions -> IO ()
+cmdRec os = do
+  pass <- Line.runInputT Line.defaultSettings (getPassword "Enter passphrase: ")
+  etxt <- SB.readFile (recInpFile os)
+  case decodeAndDecrypt pass etxt of
+    Left e -> fail e
+    Right plain -> do
+      newPass <- Line.runInputT Line.defaultSettings getNewPassword
+      salt <- getSalt
+      iter <- guessIterCount (recParamTargetTime os)
+      SB.writeFile (recOutFile os) $ encryptAndEncode newPass salt iter plain
+
 main :: IO ()
 main = execParser opts >>= \x -> case optCommand x of
   Encrypt os -> cmdEnc os
   Decrypt os -> cmdDec os
-  Recrypt _  -> return ()
+  Recrypt os -> cmdRec os
   where
     opts = info (helper <*> options)
       ( fullDesc <>
