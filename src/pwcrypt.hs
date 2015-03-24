@@ -61,7 +61,7 @@ options = Options <$>
         metavar "FILE" <>
         help "Output file"
         ) <*>
-      option double (
+      option auto (
         long "target-time" <>
         metavar "FLOAT" <>
         help "Target time parameter" <>
@@ -81,9 +81,6 @@ options = Options <$>
         )
 
     recOpts = RecOptions <$> pure "" <*> pure ""
-
-    double :: ReadM Double
-    double = auto
 
 getPassword :: String -> Line.InputT IO SB.ByteString
 getPassword p = fromString . fromMaybe "" <$> Line.getPassword (Just '*') p
