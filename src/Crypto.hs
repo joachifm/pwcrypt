@@ -44,9 +44,10 @@ module Crypto (
   encryptAndEncode,
   decodeAndDecrypt,
   recrypt,
+  decode,
 
 #ifdef TEST
-  encode, decode, encrypt, decrypt,
+  encode, encrypt, decrypt,
 #endif
   ) where
 

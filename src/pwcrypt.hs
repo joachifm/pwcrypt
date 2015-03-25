@@ -33,10 +33,15 @@ data RecOptions = RecOptions
   , recParamTargetTime :: Double
   } deriving (Show)
 
+data InfOptions = InfOptions
+  { infInpFile :: FilePath
+  } deriving (Show)
+
 data Command
   = Encrypt EncOptions
   | Decrypt DecOptions
   | Recrypt RecOptions
+  | Info InfOptions
     deriving (Show)
 
 data Options = Options
@@ -48,7 +53,8 @@ options = Options <$>
   subparser (
     command "enc" (info (helper <*> (Encrypt <$> encOpts)) ( progDesc "encrypt" )) <>
     command "dec" (info (helper <*> (Decrypt <$> decOpts)) ( progDesc "decrypt" )) <>
-    command "rec" (info (helper <*> (Recrypt <$> recOpts)) ( progDesc "recrypt" ))
+    command "rec" (info (helper <*> (Recrypt <$> recOpts)) ( progDesc "recrypt" )) <>
+    command "inf" (info (helper <*> (Info    <$> infOpts)) ( progDesc "info"    ))
   )
   where
     encOpts = EncOptions <$>
@@ -99,6 +105,13 @@ options = Options <$>
         value (0.2::Double)
         )
 
+    infOpts = InfOptions <$>
+      strOption (
+        long "infile" <>
+        metavar "FILE" <>
+        help "Input file"
+        )
+
 getPassword :: String -> Line.InputT IO SB.ByteString
 getPassword p = fromString . fromMaybe "" <$> Line.getPassword (Just '*') p
 
@@ -135,11 +148,19 @@ cmdRec os = do
       iter <- guessIterCount (recParamTargetTime os)
       SB.writeFile (recOutFile os) $ encryptAndEncode newPass salt iter plain
 
+cmdInf :: InfOptions -> IO ()
+cmdInf os =
+  either fail (putStr . fmt) . decode =<< SB.readFile (infInpFile os)
+  where
+    fmt (_, c, m, _) = "Iteration count: " ++ show c ++ "\n" ++
+                       "MAC: " ++ show m
+
 main :: IO ()
 main = execParser opts >>= \x -> case optCommand x of
   Encrypt os -> cmdEnc os
   Decrypt os -> cmdDec os
   Recrypt os -> cmdRec os
+  Info os    -> cmdInf os
   where
     opts = info (helper <*> options)
       ( fullDesc <>
