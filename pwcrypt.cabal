@@ -19,7 +19,8 @@ source-repository head
 executable pwcrypt
   main-is:             pwcrypt.hs
   other-modules:
-    Crypto
+                Crypto,
+                Crypto.PBES2.AES_GCM
   other-extensions:    OverloadedStrings, BangPatterns
   extra-libraries:     ncursesw
   build-depends:
