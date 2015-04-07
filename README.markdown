@@ -6,6 +6,6 @@ file encryption, akin to the scrypt utility.
 # Usage
 
 ```sh
-pwcrypt enc foo.txt foo.txt.enc
-pwcrypt dec foo.txt.enc foo.txt
+pwcrypt enc --infile foo.txt --outfile foo.txt.enc
+pwcrypt dec --infile foo.txt.enc --outfile foo.txt
 ```
